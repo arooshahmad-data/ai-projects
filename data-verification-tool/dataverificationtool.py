@@ -1,0 +1,292 @@
+import sys
+import os
+import shutil
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QPushButton,
+    QLineEdit, QTextEdit, QFileDialog, QSpacerItem, QSizePolicy
+)
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import Qt, QTimer
+
+class ImageViewer(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.base_folder_path = None
+        self.image_folder_path = None
+        self.text_folder_path = None
+        self.dest_image_folder_path = None
+        self.dest_text_folder_path = None
+        self.image_files = []  # image file names
+        self.imagefile_name = None
+        self.textfile_name = None
+        self.current_index = 0
+
+        self.setWindowTitle('Data Verification Tool')
+        self.setGeometry(100, 100, 600, 450)
+
+        # Widgets
+        self.image_label = QLabel(self)
+        self.image_label.setAlignment(Qt.AlignCenter)
+
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setStyleSheet("font-size: 15px;")
+        self.text_edit.setFixedSize(800, 150)
+
+        self.folder_path_edit = QLineEdit(self)
+
+        self.prev_button = QPushButton('Previous', self)
+        self.next_button = QPushButton('Next', self)
+        self.correct_button = QPushButton('Correct', self)
+        self.incorrect_button = QPushButton('Incorrect', self)
+        self.edit_text_button = QPushButton('Edit Text', self)
+        self.save_text_button = QPushButton('Save Text', self)
+
+        self.style_buttons()
+
+        self.message_label = QLabel(self)
+        self.message_label.setAlignment(Qt.AlignCenter)
+        self.message_label.setWordWrap(True)
+
+        self.image_count_label = QLabel('Total Images: 0', self)
+        self.image_count_label.setStyleSheet("font-size: 15px;")
+
+        self.text_count_label = QLabel('Total Texts: 0', self)
+        self.text_count_label.setStyleSheet("font-size: 15px;")
+
+        self.imagefile_name_label = QLabel('Current Image: None', self)
+        self.imagefile_name_label.setAlignment(Qt.AlignCenter)
+        self.imagefile_name_label.setStyleSheet("font-size: 15px;")
+
+        self.textfile_name_label = QLabel('Current Text File: None', self)
+        self.textfile_name_label.setAlignment(Qt.AlignCenter)
+        self.textfile_name_label.setStyleSheet("font-size: 15px;")
+
+        main_layout = QHBoxLayout(self)
+
+        left_panel = QVBoxLayout()
+        right_panel = QVBoxLayout()
+
+        path_layout = QVBoxLayout()
+        path_layout.addWidget(QLabel('Base Folder: '))
+        folder_path_layout = QHBoxLayout()
+        folder_path_layout.addWidget(self.folder_path_edit)
+        folder_path_layout.addWidget(QPushButton('Browse', clicked=self.select_base_folder))
+        path_layout.addLayout(folder_path_layout)
+        path_layout.addWidget(self.image_count_label)
+        path_layout.addWidget(self.text_count_label)
+
+        image_text_layout = QVBoxLayout()
+        image_text_layout.setAlignment(Qt.AlignCenter)
+        image_text_layout.addWidget(self.image_label)
+        image_text_layout.addWidget(self.text_edit)
+        image_text_layout.addSpacerItem(QSpacerItem(20, 5, QSizePolicy.Minimum, QSizePolicy.Expanding))
+        image_text_layout.addWidget(self.imagefile_name_label)
+        image_text_layout.addWidget(self.textfile_name_label)
+        image_text_layout.addSpacerItem(QSpacerItem(20, 5, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        nav_button_layout = QHBoxLayout()
+        nav_button_layout.setSpacing(20)
+        nav_button_layout.addWidget(self.prev_button)
+        nav_button_layout.addWidget(self.next_button)
+        nav_button_layout.setAlignment(Qt.AlignCenter)
+
+        right_panel.addLayout(path_layout)
+        right_panel.addWidget(self.message_label)
+        right_panel.addLayout(image_text_layout)
+        right_panel.addLayout(nav_button_layout)
+
+        button_layout = QVBoxLayout()
+        button_layout.setAlignment(Qt.AlignBottom)
+        button_layout.setSpacing(10)
+
+        action_buttons_layout = QHBoxLayout()
+        action_buttons_layout.setAlignment(Qt.AlignCenter)
+        action_buttons_layout.setSpacing(10)
+        action_buttons_layout.addWidget(self.correct_button)
+        action_buttons_layout.addWidget(self.incorrect_button)
+        action_buttons_layout.addWidget(self.edit_text_button)
+        action_buttons_layout.addWidget(self.save_text_button)
+
+        button_layout.addLayout(action_buttons_layout)
+
+        left_panel.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        right_panel.addLayout(button_layout)
+        right_panel.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
+        main_layout.addLayout(right_panel)
+        main_layout.addLayout(left_panel)
+
+        self.setLayout(main_layout)
+
+        self.prev_button.clicked.connect(self.show_previous_image)
+        self.next_button.clicked.connect(self.show_next_image)
+        self.correct_button.clicked.connect(lambda: self.copy_image_and_text('correct_data'))
+        self.incorrect_button.clicked.connect(lambda: self.copy_image_and_text('incorrect_data'))
+        self.edit_text_button.clicked.connect(self.edit_text)
+        self.save_text_button.clicked.connect(self.save_text)
+
+    def style_buttons(self):
+        button_style = (
+            "background-color: {}; color: white; border-radius: 5px; "
+            "padding: 5px; min-width: 100px; max-width: 100px; min-height: 35px; max-height: 35px;"
+        )
+        self.prev_button.setStyleSheet(button_style.format("#FFA07A"))
+        self.next_button.setStyleSheet(button_style.format("#8FBC8F"))
+        self.correct_button.setStyleSheet(button_style.format("#1E90FF"))
+        self.incorrect_button.setStyleSheet(button_style.format("#DC143C"))
+        self.edit_text_button.setStyleSheet(button_style.format("#FFD700"))
+        self.save_text_button.setStyleSheet(button_style.format("#FF6347"))
+
+    def select_base_folder(self):
+        self.base_folder_path = QFileDialog.getExistingDirectory(self, 'Select Base Folder')
+        self.folder_path_edit.setText(self.base_folder_path)
+        self.image_folder_path = os.path.join(self.base_folder_path, 'images')
+        self.text_folder_path = os.path.join(self.base_folder_path, 'texts')
+        self.load_images()
+
+    def load_images(self):
+        if self.image_folder_path and self.text_folder_path:
+            image_files = [filename for filename in os.listdir(self.image_folder_path)
+                           if filename.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            self.image_files = image_files
+            total_images = len(image_files)
+            self.image_count_label.setText(f'Total Images: {total_images}')
+
+            text_files = [filename for filename in os.listdir(self.text_folder_path)
+                          if filename.lower().endswith('.txt')]
+            total_texts = len(text_files)
+            self.text_count_label.setText(f'Total Texts: {total_texts}')
+
+            self.current_index = 0
+            self.show_image_and_text()
+
+    def show_image_and_text(self):
+        if self.image_files:
+            self.toggle_buttons(False)  # Disable buttons during operation
+            try:
+                image_filename = self.image_files[self.current_index]
+                image_path = os.path.join(self.image_folder_path, image_filename)
+                text_filename = os.path.splitext(image_filename)[0] + '.txt'
+                text_path = os.path.join(self.text_folder_path, text_filename)
+
+                if os.path.exists(text_path):
+                    with open(text_path, 'r', encoding='utf-8') as f:
+                        text_content = f.read()
+                        self.text_edit.setPlainText(text_content)
+                        self.imagefile_name_label.setText(f"Current Image: {image_filename}")
+                        self.textfile_name_label.setText(f"Current Text File: {text_filename}")
+                else:
+                    self.text_edit.setPlainText('No text file found for this image.')
+
+                pixmap = QPixmap(image_path)
+                self.image_label.setPixmap(pixmap.scaledToWidth(600))
+                self.image_label.setAlignment(Qt.AlignCenter)
+            finally:
+                self.toggle_buttons(True)  # Re-enable buttons after operation
+
+    def show_previous_image(self):
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.show_image_and_text()
+
+    def show_next_image(self):
+        if self.current_index < len(self.image_files) - 1:
+            self.current_index += 1
+            self.show_image_and_text()
+
+    def copy_image_and_text(self, folder_name):
+        if self.base_folder_path and self.image_folder_path and self.text_folder_path:
+            self.toggle_buttons(False)  # Disable buttons during operation
+            try:
+                if self.current_index < len(self.image_files):
+                    image_filename = self.image_files[self.current_index]
+                    image_source_path = os.path.join(self.image_folder_path, image_filename)
+                    text_filename = os.path.splitext(image_filename)[0] + '.txt'
+                    text_source_path = os.path.join(self.text_folder_path, text_filename)
+
+                    dest_folder_path = os.path.join(self.base_folder_path, folder_name)
+                    dest_image_folder_path = os.path.join(dest_folder_path, 'images')
+                    dest_text_folder_path = os.path.join(dest_folder_path, 'texts')
+
+                    if not os.path.exists(dest_image_folder_path):
+                        os.makedirs(dest_image_folder_path)
+                    if not os.path.exists(dest_text_folder_path):
+                        os.makedirs(dest_text_folder_path)
+
+                    dest_image_path = os.path.join(dest_image_folder_path, image_filename)
+                    dest_text_path = os.path.join(dest_text_folder_path, text_filename)
+
+                    if os.path.exists(dest_image_path) and os.path.exists(dest_text_path):
+                        self.show_message('Copy Error', 'Files already exist in the destination directories!', 'darkred')
+                    elif os.path.exists(dest_image_path):
+                        self.show_message('Copy Error', 'Image file already exists in the destination directory!', 'darkred')
+                    elif os.path.exists(dest_text_path):
+                        self.show_message('Copy Error', 'Text file already exists in the destination directory!', 'darkred')
+                    else:
+                        try:
+                            # shutil.copyfile(image_source_path, dest_image_path)
+                            # shutil.copyfile(text_source_path, dest_text_path)
+                            shutil.move(image_source_path, dest_image_path)
+                            shutil.move(text_source_path, dest_text_path)
+                            self.show_message('Copy', 'Image and Text copied successfully!', 'green')
+                        except Exception as e:
+                            self.show_message('Copy Error', f'Failed to copy files: {str(e)}', 'darkred')
+            finally:
+                self.toggle_buttons(True)  # Re-enable buttons after operation
+        else:
+            self.show_message('Copy Error', 'Select base folder before copying!', 'darkred')
+
+    def edit_text(self):
+        self.text_edit.setReadOnly(False)
+
+    def save_text(self):
+        if self.image_folder_path and self.text_folder_path:
+            self.toggle_buttons(False)  # Disable buttons during operation
+            try:
+                if self.current_index < len(self.image_files):
+                    text_filename = os.path.splitext(self.image_files[self.current_index])[0] + '.txt'
+                    text_path = os.path.join(self.text_folder_path, text_filename)
+                    new_text_content = self.text_edit.toPlainText()
+
+                    try:
+                        with open(text_path, 'w', encoding='utf-8-sig') as f:
+                            f.write(new_text_content)
+                        self.show_message('Save Text', 'Text saved successfully!', 'green')
+                        self.text_edit.setReadOnly(True)
+                    except Exception as e:
+                        self.show_message('Save Error', f'Failed to save text: {str(e)}', 'darkred')
+            finally:
+                self.toggle_buttons(True)  # Re-enable buttons after operation
+        else:
+            self.show_message('Save Error', 'Select base folder before saving!', 'darkred')
+
+    def show_message(self, title, message, color):
+        style = f'color: {color};'
+        self.message_label.setStyleSheet(style)
+        self.message_label.setText(f'<b>{title}</b>: {message}')
+        QTimer.singleShot(5000, self.clear_message)
+
+    def clear_message(self):
+        self.message_label.clear()
+
+    def toggle_buttons(self, enable):
+        self.prev_button.setEnabled(enable)
+        self.next_button.setEnabled(enable)
+        self.correct_button.setEnabled(enable)
+        self.incorrect_button.setEnabled(enable)
+        self.edit_text_button.setEnabled(enable)
+        self.save_text_button.setEnabled(enable)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    viewer = ImageViewer()
+    viewer.show()
+    sys.exit(app.exec_())
+
+
+# pyinstaller --onefile --windowed --icon=download.ico dataverificationtool.py
