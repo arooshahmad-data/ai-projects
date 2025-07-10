@@ -8,12 +8,13 @@ Welcome to **AI Projects** — a curated collection of real-world applications a
 
 | Project | Area | Description |
 |--------|------|-------------|
-| [california-housing-price-prediction](./california-housing-price-prediction) | ML / Regression | Predict housing prices using various features and regression techniques. |
+| [captcha-solver](./california-housing-price-prediction) | CV / OCR | Read Captcha from images 
+| [real-life-violence-detection](./real-life-violence-detection) | CV / Video | Detect violence in real-world surveillance footage using deep learning. |
 | [car-dent-and-scractch-masking](./car-dent-and-scractch-masking) | CV / Segmentation | Detect and mask dents or scratches on car surfaces using image segmentation. |
-| [human-activity-monitoring](./human-activity-monitoring) | CV / Video | Recognize human activities in videos using temporal and spatial features. |
+| [california-housing-price-prediction](./california-housing-price-prediction) | ML / Regression | Predict housing prices using various features and regression techniques. |
+| [human-activity-monitoring](./human-activity-monitoring) | ML / Classification | Recognize human activities using sensor data to classify the activity. |
 | [luna-lung-nodule-detection](./luna-lung-nodule-detection) | CV / Medical Imaging | Detect lung nodules from CT scans with preprocessing and CNN modeling. |
 | [mnist-digit-classification](./mnist-digit-classification) | ML / CV | Classify handwritten digits using CNN on the MNIST dataset. |
-| [real-life-violence-detection](./real-life-violence-detection) | CV / Video | Detect violence in real-world surveillance footage using deep learning. |
 | [table-items-yolo-detection](./table-items-yolo-detection) | CV / Object Detection | Detect food and utensil items from top-down images using YOLO. |
 | [logo-similarity-using-siamese-network](./logo-similarity-using-siamese-network) | CV / Similarity | Identify similar logos using a Siamese neural network and cosine distance. |
 
